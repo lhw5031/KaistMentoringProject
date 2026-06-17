@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>나만의 이력서 사이트</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-md">
+      <h1 class="text-3xl font-bold text-center text-blue-600 mb-8">
+        📄 나만의 이력서 사이트
+      </h1>
+
+      <div class="bg-gray-50 p-4 rounded-md mb-8 border border-gray-200">
+        <h2 class="text-lg font-semibold mb-3">✨ 항목 추가하기</h2>
+        <div class="flex gap-2">
+          <select id="categorySelect" class="border p-2 rounded bg-white">
+            <option value="intro">자기소개</option>
+            <option value="contact">연락처</option>
+            <option value="skill">기술스택</option>
+          </select>
+          <input
+            type="text"
+            id="contentInput"
+            placeholder="내용을 입력하세요 (예: 길동무 홍길동, 010-XXXX, React)"
+            class="border p-2 rounded flex-1"
+          />
+          <button
+            onclick="addItem()"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 font-bold"
+          >
+            추가
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div>
+          <h3 class="text-xl font-bold border-b-2 border-blue-400 pb-1 mb-2">
+            👤 자기소개
+          </h3>
+          <ul id="intro-list" class="space-y-2"></ul>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-bold border-b-2 border-green-400 pb-1 mb-2">
+            📞 연락처
+          </h3>
+          <ul id="contact-list" class="space-y-2"></ul>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-bold border-b-2 border-purple-400 pb-1 mb-2">
+            💻 기술 스택
+          </h3>
+          <ul id="skill-list" class="space-y-2"></ul>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // index.html 수정
+      async function loadResume() {
+        const response = await fetch("/api/resume");
+        const data = await response.json(); // 오타 수정
+
+        // 리스트 초기화
+        document.getElementById("intro-list").innerHTML = "";
+        document.getElementById("contact-list").innerHTML = "";
+        document.getElementById("skill-list").innerHTML = "";
+
+        data.forEach((item) => {
+          const li = document.createElement("li");
+          li.className =
+            "flex justify-between items-center bg-gray-50 p-2 rounded border";
+          li.innerHTML = `
+          <span class="text-gray-800">${item.content}</span>
+          <div class="space-x-1">
+            <button onclick="editItem(${item.id}, '${item.content}')" class="text-xs bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">수정</button>
+            <button onclick="deleteItem(${item.id})" class="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">삭제</button>
+          </div>
+        `;
+          document.getElementById(`${item.category}-list`).appendChild(li);
+        });
+      }
+
+      // 항목 추가 (CREATE)
+      async function addItem() {
+        const category = document.getElementById("categorySelect").value;
+        const content = document.getElementById("contentInput").value;
+
+        if (!content) return alert("내용을 입력해주세요!");
+
+        await fetch("/api/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category, content }),
+        });
+
+        document.getElementById("contentInput").value = "";
+        loadResume(); // 새로고침
+      }
+
+      // 항목 수정 (UPDATE)
+      async function editItem(id, oldContent) {
+        const newContent = prompt("수정할 내용을 입력하세요:", oldContent);
+        if (!newContent || newContent === oldContent) return;
+
+        await fetch(`/api/resume/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: newContent }),
+        });
+        loadResume();
+      }
+
+      // 항목 삭제 (DELETE)
+      async function deleteItem(id) {
+        if (!confirm("정말 삭제하시겠습니까?")) return;
+
+        await fetch(`/api/resume/${id}`, { method: "DELETE" });
+        loadResume();
+      }
+
+      // 처음 실행 시 데이터 로드
+      loadResume();
+    </script>
+  </body>
+</html>
